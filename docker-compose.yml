@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: mysql-container
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: habithero
+      MYSQL_USER: habituser
+      MYSQL_PASSWORD: habitpass
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  habithero-app:
+    image: habithero-app
+    container_name: habithero-app
+    depends_on:
+      - mysql
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-container:3306/habithero
+      SPRING_DATASOURCE_USERNAME: habituser
+      SPRING_DATASOURCE_PASSWORD: habitpass
+    ports:
+      - "8080:8080"
+
+volumes:
+  mysql_data:
