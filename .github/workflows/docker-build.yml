@@ -13,23 +13,27 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up JDK 21
+      - name: Set up Java 21
         uses: actions/setup-java@v4
         with:
           java-version: '21'
           distribution: 'temurin'
 
-      - name: Build JAR file
+      - name: Build the JAR
         run: mvn clean package -DskipTests
+
+      - name: Set up Docker
+        uses: docker/setup-buildx-action@v3
 
       - name: Build Docker image
         run: docker build -t habithero-app .
 
-      - name: Save image to tar (with correct permissions)
+      - name: Save Docker image to tar
         run: |
           mkdir -p build_output
           sudo docker save habithero-app -o build_output/habithero-app.tar
-          sudo chmod 777 build_output/habithero-app.tar
+          sudo chmod 644 build_output/habithero-app.tar
+          ls -l build_output/
 
       - name: Copy image to EC2
         uses: appleboy/scp-action@v0.1.7
@@ -39,16 +43,15 @@ jobs:
           key: ${{ secrets.EC2_KEY }}
           source: "build_output/habithero-app.tar"
           target: "/home/ubuntu/"
-          timeout: 120s
 
-      - name: SSH into EC2 and run container
+      - name: SSH into EC2 and deploy container
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_KEY }}
           script: |
-            sudo docker load -i habithero-app.tar
+            sudo docker load -i /home/ubuntu/habithero-app.tar
             sudo docker stop habithero || true
             sudo docker rm habithero || true
             sudo docker run -d -p 8080:8080 --name habithero habithero-app
