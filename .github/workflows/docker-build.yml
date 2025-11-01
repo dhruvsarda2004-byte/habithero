@@ -31,9 +31,9 @@ jobs:
       - name: Save Docker image to tar
         run: |
           mkdir -p build_output
-          sudo docker save habithero-app -o build_output/habithero-app.tar
-          sudo chmod 644 build_output/habithero-app.tar
-          ls -l build_output/
+          docker save habithero-app -o build_output/habithero-app.tar
+          chmod 777 build_output/habithero-app.tar
+          ls -lh build_output/
 
       - name: Copy image to EC2
         uses: appleboy/scp-action@v0.1.7
@@ -51,7 +51,10 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_KEY }}
           script: |
-            sudo docker load -i /home/ubuntu/habithero-app.tar
-            sudo docker stop habithero || true
-            sudo docker rm habithero || true
-            sudo docker run -d -p 8080:8080 --name habithero habithero-app
+            cd /home/ubuntu
+            ls -lh
+            docker load -i habithero-app.tar
+            docker stop habithero || true
+            docker rm habithero || true
+            docker run -d -p 8080:8080 --name habithero habithero-app
+
