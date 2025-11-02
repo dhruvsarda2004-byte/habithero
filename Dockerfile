@@ -1,14 +1,30 @@
-# Step 1: Use base image
-FROM openjdk:21-jdk-slim
-
-# Step 2: Set working directory inside container
+# ===============================
+# Stage 1: Build the Spring Boot app
+# ===============================
+FROM maven:3.9.6-eclipse-temurin-21 AS builder
 WORKDIR /app
 
-# Step 3: Copy the built jar into the container
-COPY target/habithero-0.0.1-SNAPSHOT.jar app.jar
+# Copy only pom.xml first (to cache dependencies)
+COPY pom.xml .
+RUN mvn dependency:go-offline
 
-# Step 4: Expose port 8080 (Spring Boot default)
+# Copy the rest of the source code
+COPY src ./src
+
+# Build the application inside the container
+RUN mvn clean package -DskipTests
+
+# ===============================
+# Stage 2: Run the app
+# ===============================
+FROM openjdk:21-jdk-slim
+WORKDIR /app
+
+# Copy the built jar from the builder stage
+COPY --from=builder /app/target/*.jar app.jar
+
+# Expose Spring Boot's default port
 EXPOSE 8080
 
-# Step 5: Run the jar file
+# Run the jar
 ENTRYPOINT ["java", "-jar", "app.jar"]
